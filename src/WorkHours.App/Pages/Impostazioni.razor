@@ -1,0 +1,172 @@
+@page "/impostazioni"
+@inherits RefreshOnChange
+@inject BackupExporter Backup
+
+<PageTitle>Impostazioni</PageTitle>
+
+<h1>Impostazioni</h1>
+<div class="subtitle">Monte ore e backup.</div>
+
+@if (Repo.LoadWarning is not null)
+{
+    <div class="card-wh warn small">@Repo.LoadWarning</div>
+}
+
+<div class="card-wh">
+    <h2 class="h6">Monte ore</h2>
+
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <input type="number" class="form-control" style="max-width: 6rem" min="1" max="60" step="0.5" @bind="_weeklyHours" @bind:after="Edited" />
+        <span>ore a settimana</span>
+    </div>
+
+    <div class="small text-muted mb-1">Giorni lavorativi</div>
+    <div class="weekday-picker mb-2">
+        @foreach (var day in WeekOrder)
+        {
+            var d = day;
+            <button type="button" class="btn btn-sm @(_workingDays.Contains(d) ? "btn-primary" : "btn-outline-secondary")" @onclick="() => Toggle(d)">
+                @Format.DayName(d)[..3]
+            </button>
+        }
+    </div>
+    <div class="small text-muted mb-3">
+        @(_workingDays.Count > 0 ? $"= {Format.Hours(TimeSpan.FromHours(_weeklyHours / _workingDays.Count))} al giorno" : "Scegli almeno un giorno")
+    </div>
+
+    <div class="small text-muted mt-3 mb-2">
+        Le modifiche valgono dal mese in corso: i mesi passati restano calcolati come prima.
+    </div>
+    <button class="btn btn-primary" disabled="@(_workingDays.Count == 0 || _weeklyHours <= 0)" @onclick="SaveSettingsAsync">Salva impostazioni</button>
+    @if (_settingsSaved)
+    {
+        <span class="text-ok small ms-2">Salvato ✓</span>
+    }
+</div>
+
+<div class="card-wh">
+    <h2 class="h6">Backup</h2>
+    <p class="small">
+        I dati sono salvati solo su questo telefono (@Repo.Days.Count giorni registrati).
+        Se elimini l'app dalla schermata Home, vengono cancellati: esporta ogni tanto un backup
+        e conservalo in File o iCloud.
+    </p>
+    <p class="small text-muted">
+        Ultimo backup: @(Repo.LastBackup is { } last ? last.ToString("dd/MM/yyyy HH:mm") : "mai")
+    </p>
+
+    <button class="btn btn-primary mb-3" @onclick="Backup.ExportAsync">Esporta backup</button>
+
+    <div class="mb-2">
+        <label class="form-label small text-muted" for="import">Ripristina da backup</label>
+        <InputFile id="import" class="form-control" accept=".json,application/json" OnChange="SelectFileAsync" />
+    </div>
+
+    @if (_pendingJson is not null)
+    {
+        <div class="card-wh warn small">
+            Il ripristino <strong>sostituisce tutti i dati attuali</strong> con quelli del file "@_pendingName".
+            <div class="mt-2">
+                <button class="btn btn-danger btn-sm" @onclick="ImportAsync">Sostituisci</button>
+                <button class="btn btn-secondary btn-sm" @onclick="() => _pendingJson = null">Annulla</button>
+            </div>
+        </div>
+    }
+
+    @if (_message is not null)
+    {
+        <div class="small @(_isError ? "text-bad" : "text-ok")">@_message</div>
+    }
+</div>
+
+@code {
+    private const long MaxBackupSize = 5 * 1024 * 1024;
+
+    private static readonly DayOfWeek[] WeekOrder =
+    [
+        DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday,
+        DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday,
+    ];
+
+    private double _weeklyHours;
+    private HashSet<DayOfWeek> _workingDays = [];
+    private bool _settingsSaved;
+
+    private string? _pendingJson;
+    private string? _pendingName;
+    private string? _message;
+    private bool _isError;
+
+    private static DateOnly Today => DateOnly.FromDateTime(DateTime.Now);
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        LoadForm();
+    }
+
+    private void LoadForm()
+    {
+        var schedule = Repo.Settings.ScheduleFor(Today);
+        _weeklyHours = schedule.WeeklyHours;
+        _workingDays = [.. schedule.WorkingDays];
+    }
+
+    private void Toggle(DayOfWeek day)
+    {
+        if (!_workingDays.Remove(day))
+            _workingDays.Add(day);
+        Edited();
+    }
+
+    private void Edited() => _settingsSaved = false;
+
+    private async Task SaveSettingsAsync()
+    {
+        var monthStart = new DateOnly(Today.Year, Today.Month, 1);
+        var current = Repo.Settings.ScheduleFor(Today);
+
+        // Tiene i monte ore dei mesi passati e sostituisce quello dal mese in corso in poi.
+        var schedules = Repo.Settings.Schedules.Where(s => s.ValidFrom < monthStart).ToList();
+        var changed = current.WeeklyHours != _weeklyHours || !current.WorkingDays.SetEquals(_workingDays);
+        if (changed)
+            schedules.Add(new WorkSchedule(schedules.Count == 0 ? DateOnly.MinValue : monthStart, _weeklyHours, [.. _workingDays]));
+        else if (current.ValidFrom >= monthStart)
+            schedules.Add(current);
+
+        await Repo.SaveSettingsAsync(new Settings { Schedules = schedules });
+        _settingsSaved = true;
+    }
+
+    private async Task SelectFileAsync(InputFileChangeEventArgs e)
+    {
+        _message = null;
+        try
+        {
+            using var reader = new StreamReader(e.File.OpenReadStream(MaxBackupSize));
+            _pendingJson = await reader.ReadToEndAsync();
+            _pendingName = e.File.Name;
+        }
+        catch (IOException)
+        {
+            Show("Il file è troppo grande per essere un backup.", error: true);
+        }
+    }
+
+    private async Task ImportAsync()
+    {
+        try
+        {
+            await Repo.ImportJsonAsync(_pendingJson!);
+            LoadForm();
+            Show($"Backup ripristinato: {Repo.Days.Count} giorni.", error: false);
+        }
+        catch (InvalidBackupException ex)
+        {
+            Show(ex.Message, error: true);
+        }
+        _pendingJson = null;
+    }
+
+    private void Show(string message, bool error) => (_message, _isError) = (message, error);
+}

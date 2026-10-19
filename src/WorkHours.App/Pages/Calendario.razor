@@ -1,0 +1,128 @@
+@page "/calendario"
+@page "/calendario/{Year:int}/{Month:int}"
+@inherits RefreshOnChange
+@inject NavigationManager Nav
+
+<PageTitle>Calendario</PageTitle>
+
+@{
+    var calc = Repo.CreateCalculator();
+    var first = new DateOnly(_year, _month, 1);
+    var last = first.AddMonths(1).AddDays(-1);
+    var asOf = Today < last ? Today : last;
+    var summary = calc.Month(_year, _month, asOf);
+    var leadingBlanks = ((int)first.DayOfWeek + 6) % 7;
+}
+
+<div class="cal-nav">
+    <button class="btn btn-link text-decoration-none fs-3 px-3 py-0" aria-label="Mese precedente" @onclick="() => Go(-1)">‹</button>
+    <h1 class="m-0">@Format.MonthYear(_year, _month)</h1>
+    <button class="btn btn-link text-decoration-none fs-3 px-3 py-0" aria-label="Mese successivo" @onclick="() => Go(1)">›</button>
+</div>
+
+<div class="card-wh stat-row">
+    <div class="stat">
+        <div class="label">Obiettivo</div>
+        <div class="value">@Format.Hours(summary.Target)</div>
+    </div>
+    <div class="stat">
+        <div class="label">Fatte</div>
+        <div class="value">@Format.Hours(summary.Worked)</div>
+    </div>
+    <div class="stat">
+        <div class="label">Saldo</div>
+        <div class="value @BalanceClass(summary.Balance)">@(first > Today ? "–" : Format.Balance(summary.Balance))</div>
+    </div>
+</div>
+
+<div class="cal-grid">
+    @foreach (var head in Format.WeekHeaders)
+    {
+        <div class="cal-head">@head</div>
+    }
+    @for (var i = 0; i < leadingBlanks; i++)
+    {
+        <div></div>
+    }
+    @for (var d = first; d <= last; d = d.AddDays(1))
+    {
+        var date = d;
+        var (css, text) = Cell(calc, date);
+        <button class="cal-day @css @(date == Today ? "today" : "")" @onclick="() => _selected = date">
+            <span class="num">@date.Day</span>
+            <span class="hrs">@text</span>
+        </button>
+    }
+</div>
+
+<div class="legend">
+    <span style="--c: var(--wh-ok-soft)">in pari</span>
+    <span style="--c: var(--wh-bad-soft)">sotto</span>
+    <span style="--c: var(--wh-accent-soft)">festivo / ferie</span>
+</div>
+
+@if (_selected is { } sel)
+{
+    <div class="sheet-backdrop" @onclick="() => _selected = null">
+        <div class="sheet" @onclick:stopPropagation="true">
+            <div class="sheet-header">
+                <h2 class="h5 m-0">@Format.LongDate(sel)</h2>
+                <button class="btn btn-link text-muted" @onclick="() => _selected = null">Chiudi</button>
+            </div>
+            <DayEditor Date="sel" OnSaved="() => _selected = null" />
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Year { get; set; }
+    [Parameter] public int Month { get; set; }
+
+    private int _year;
+    private int _month;
+    private DateOnly? _selected;
+
+    private static DateOnly Today => DateOnly.FromDateTime(DateTime.Now);
+
+    protected override void OnParametersSet()
+    {
+        var valid = Year is >= 2000 and <= 2100 && Month is >= 1 and <= 12;
+        (_year, _month) = valid ? (Year, Month) : (Today.Year, Today.Month);
+    }
+
+    private void Go(int delta)
+    {
+        var target = new DateOnly(_year, _month, 1).AddMonths(delta);
+        Nav.NavigateTo($"calendario/{target.Year}/{target.Month}");
+    }
+
+    private static string BalanceClass(TimeSpan balance) =>
+        balance < TimeSpan.Zero ? "text-bad" : balance > TimeSpan.Zero ? "text-ok" : "";
+
+    private static (string Css, string Text) Cell(BalanceCalculator calc, DateOnly date)
+    {
+        var worked = calc.Worked(date);
+        var expected = calc.Expected(date);
+        var type = calc.EffectiveType(date);
+        var hours = worked > TimeSpan.Zero ? Format.Hours(worked) : "";
+
+        if (type.CoversTarget())
+            return ("covered", hours != "" ? hours : Short(type));
+        if (expected == TimeSpan.Zero)
+            return (worked > TimeSpan.Zero ? "ok" : "off", hours);
+        if (date > Today)
+            return ("", hours);
+        if (date == Today && worked == TimeSpan.Zero)
+            return ("", "");
+        return (worked >= expected ? "ok" : "under", worked > TimeSpan.Zero ? hours : "0h");
+    }
+
+    private static string Short(DayType type) => type switch
+    {
+        DayType.Ferie => "ferie",
+        DayType.Malattia => "malat.",
+        DayType.Permesso => "perm.",
+        DayType.Festivo => "festa",
+        _ => "",
+    };
+}

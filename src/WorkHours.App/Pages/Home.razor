@@ -1,0 +1,76 @@
+@page "/"
+@inherits RefreshOnChange
+@inject BackupExporter Backup
+
+<PageTitle>Oggi</PageTitle>
+
+<h1>Oggi</h1>
+<div class="subtitle">@Format.LongDate(Today)</div>
+
+@if (Repo.IsBackupDue(DateTime.Now, BackupExporter.ReminderAfter))
+{
+    <div class="card-wh warn d-flex align-items-center justify-content-between gap-2">
+        <span class="small">
+            @(Repo.LastBackup is null ? "Non hai ancora fatto un backup." : $"Ultimo backup {(DateTime.Now - Repo.LastBackup.Value).Days} giorni fa.")
+        </span>
+        <button class="btn btn-sm btn-primary text-nowrap" @onclick="Backup.ExportAsync">Esporta</button>
+    </div>
+}
+
+@{
+    var calc = Repo.CreateCalculator();
+    // Finché oggi non è compilato, il saldo si ferma a ieri (altrimenti al mattino risulterebbe sempre in difetto).
+    var todayFilled = calc.Worked(Today) > TimeSpan.Zero || calc.EffectiveType(Today).CoversTarget();
+    var month = calc.Month(Today.Year, Today.Month, todayFilled ? Today : Today.AddDays(-1));
+    var week = calc.Week(Today);
+}
+
+<div class="card-wh">
+    <div class="label">Saldo di @Format.MonthName(Today.Month)</div>
+    <div class="big-number @BalanceClass(month.Balance)">@Format.Balance(month.Balance)</div>
+    <div class="small text-muted">
+        @(todayFilled ? "aggiornato a oggi" : "aggiornato a ieri") ·
+        fatte @Format.Hours(month.Worked) su @Format.Hours(month.ExpectedToDate) previste
+    </div>
+    <div class="small text-muted">Obiettivo del mese: @Format.Hours(month.Target)</div>
+</div>
+
+<div class="card-wh">
+    <div class="label">
+        Questa settimana
+        <span class="text-muted fw-normal">(@week.From.Day–@week.To.Day @Format.MonthName(week.To.Month))</span>
+    </div>
+    <div class="stat-row mt-1">
+        <div class="stat">
+            <div class="label">Da fare</div>
+            <div class="value">@Format.Hours(week.NeededThisWeek)</div>
+        </div>
+        <div class="stat">
+            <div class="label">Fatte</div>
+            <div class="value">@Format.Hours(week.Worked)</div>
+        </div>
+        <div class="stat">
+            <div class="label">Mancano</div>
+            <div class="value @(week.Remaining == TimeSpan.Zero ? "text-ok" : "")">@Format.Hours(week.Remaining)</div>
+        </div>
+    </div>
+    @if (week.CarryIn != TimeSpan.Zero)
+    {
+        <div class="small text-muted mt-2">
+            @Format.Hours(week.Target) di settimana
+            @(week.CarryIn < TimeSpan.Zero ? $"+ {Format.Hours(-week.CarryIn)} da recuperare" : $"− {Format.Hours(week.CarryIn)} già in avanzo")
+        </div>
+    }
+</div>
+
+<div class="card-wh">
+    <div class="label mb-2">Ore di oggi</div>
+    <DayEditor Date="Today" />
+</div>
+
+@code {
+    private static DateOnly Today => DateOnly.FromDateTime(DateTime.Now);
+
+    private static string BalanceClass(TimeSpan balance) =>
+        balance < TimeSpan.Zero ? "text-bad" : balance > TimeSpan.Zero ? "text-ok" : "";
+}

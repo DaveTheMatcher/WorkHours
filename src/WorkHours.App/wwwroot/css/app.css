@@ -1,0 +1,409 @@
+/* ---------- Colori (chiaro / scuro) ---------- */
+:root {
+    --wh-accent: #a8457a;
+    --wh-accent-soft: #f6e7ef;
+    --wh-ok: #1f8a5b;
+    --wh-ok-soft: #e1f3ea;
+    --wh-bad: #c93c3c;
+    --wh-bad-soft: #fbe5e5;
+    --wh-warn-soft: #fff4dc;
+    --wh-muted: #85828c;
+    --wh-bg: #f6f5f8;
+    --wh-card: #ffffff;
+    --wh-border: #e7e4ea;
+    --tabbar-h: 58px;
+}
+
+[data-bs-theme=dark] {
+    --wh-accent: #e48ab8;
+    --wh-accent-soft: #3a2431;
+    --wh-ok: #4cc38a;
+    --wh-ok-soft: #173427;
+    --wh-bad: #ff7b7b;
+    --wh-bad-soft: #3d1e1e;
+    --wh-warn-soft: #3a3020;
+    --wh-muted: #9b98a3;
+    --wh-bg: #121114;
+    --wh-card: #1d1b20;
+    --wh-border: #2e2b33;
+}
+
+/* ---------- Base ---------- */
+html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--wh-bg);
+    -webkit-tap-highlight-color: transparent;
+}
+
+h1 {
+    font-size: 1.7rem;
+    font-weight: 700;
+    margin-bottom: 0.1rem;
+}
+
+h1:focus {
+    outline: none;
+}
+
+a, .btn-link {
+    color: var(--wh-accent);
+}
+
+/* 16px evita lo zoom automatico di iOS sui campi */
+.form-control, .form-select {
+    font-size: 16px;
+}
+
+.btn-primary, .btn-primary:hover, .btn-primary:focus, .btn-primary:active, .btn-primary:disabled {
+    color: #fff;
+    background-color: var(--wh-accent) !important;
+    border-color: var(--wh-accent) !important;
+}
+
+.btn:focus, .btn:active:focus, .form-control:focus, .form-select:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.2rem var(--wh-accent-soft);
+    border-color: var(--wh-accent);
+}
+
+.form-check-input:checked {
+    background-color: var(--wh-accent);
+    border-color: var(--wh-accent);
+}
+
+.text-ok { color: var(--wh-ok) !important; }
+.text-bad { color: var(--wh-bad) !important; }
+.text-muted { color: var(--wh-muted) !important; }
+
+/* ---------- Struttura: contenuto + barra in basso ---------- */
+.app-content {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: calc(env(safe-area-inset-top) + 16px) 16px calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 24px);
+}
+
+.tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    display: flex;
+    background: var(--wh-card);
+    border-top: 1px solid var(--wh-border);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.tabbar .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 0 6px;
+    font-size: 0.7rem;
+    color: var(--wh-muted);
+    text-decoration: none;
+}
+
+.tabbar .tab.active {
+    color: var(--wh-accent);
+}
+
+.tabbar svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* ---------- Card e numeri ---------- */
+.subtitle {
+    color: var(--wh-muted);
+    margin-bottom: 1rem;
+}
+
+.card-wh {
+    display: block;
+    background: var(--wh-card);
+    border: 1px solid var(--wh-border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.card-wh.warn {
+    background: var(--wh-warn-soft);
+}
+
+.label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--wh-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.big-number {
+    font-size: 2.6rem;
+    font-weight: 700;
+    line-height: 1.15;
+}
+
+.stat-row {
+    display: flex;
+    gap: 8px;
+}
+
+.stat {
+    flex: 1;
+}
+
+.stat .value {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.hint {
+    background: var(--wh-accent-soft);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    margin-bottom: 12px;
+}
+
+/* ---------- Editor del giorno ---------- */
+.slot-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.slot-row input {
+    flex: 1;
+    min-width: 0;
+}
+
+/* ---------- Calendario ---------- */
+.cal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.cal-nav h1 {
+    font-size: 1.35rem;
+}
+
+.cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 4px;
+}
+
+.cal-head {
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--wh-muted);
+}
+
+.cal-day {
+    aspect-ratio: 1 / 1.15;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 2px;
+    border: 1.5px solid transparent;
+    border-radius: 10px;
+    background: var(--wh-card);
+    color: inherit;
+    font-size: 0.85rem;
+}
+
+.cal-day .num {
+    font-weight: 600;
+}
+
+.cal-day .hrs {
+    margin-top: auto;
+    font-size: 0.66rem;
+    white-space: nowrap;
+}
+
+.cal-day.off { background: transparent; color: var(--wh-muted); }
+.cal-day.ok { background: var(--wh-ok-soft); }
+.cal-day.ok .hrs { color: var(--wh-ok); }
+.cal-day.under { background: var(--wh-bad-soft); }
+.cal-day.under .hrs { color: var(--wh-bad); }
+.cal-day.covered { background: var(--wh-accent-soft); }
+.cal-day.covered .hrs { color: var(--wh-accent); }
+.cal-day.today { border-color: var(--wh-accent); }
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 10px;
+    font-size: 0.75rem;
+    color: var(--wh-muted);
+}
+
+.legend span::before {
+    content: "";
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 4px;
+    border-radius: 3px;
+    vertical-align: -1px;
+    background: var(--c);
+}
+
+/* ---------- Pannello dal basso (modifica giorno) ---------- */
+.sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.35);
+}
+
+.sheet {
+    width: 100%;
+    max-width: 640px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: var(--wh-bg);
+    border-radius: 18px 18px 0 0;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+}
+
+.sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+/* ---------- Storico ---------- */
+.month-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.badge-balance {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge-balance.ok { background: var(--wh-ok-soft); color: var(--wh-ok); }
+.badge-balance.bad { background: var(--wh-bad-soft); color: var(--wh-bad); }
+.badge-balance.zero { background: var(--wh-border); }
+
+/* ---------- Impostazioni ---------- */
+.weekday-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.weekday-picker .btn {
+    min-width: 3rem;
+}
+
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #26b050;
+}
+
+.invalid {
+    outline: 1px solid red;
+}
+
+.validation-message {
+    color: red;
+}
+
+#blazor-error-ui {
+    color-scheme: light only;
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+    #blazor-error-ui .dismiss {
+        cursor: pointer;
+        position: absolute;
+        right: 0.75rem;
+        top: 0.5rem;
+    }
+
+.blazor-error-boundary {
+    background: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNDkiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIG92ZXJmbG93PSJoaWRkZW4iPjxkZWZzPjxjbGlwUGF0aCBpZD0iY2xpcDAiPjxyZWN0IHg9IjIzNSIgeT0iNTEiIHdpZHRoPSI1NiIgaGVpZ2h0PSI0OSIvPjwvY2xpcFBhdGg+PC9kZWZzPjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMCkiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yMzUgLTUxKSI+PHBhdGggZD0iTTI2My41MDYgNTFDMjY0LjcxNyA1MSAyNjUuODEzIDUxLjQ4MzcgMjY2LjYwNiA1Mi4yNjU4TDI2Ny4wNTIgNTIuNzk4NyAyNjcuNTM5IDUzLjYyODMgMjkwLjE4NSA5Mi4xODMxIDI5MC41NDUgOTIuNzk1IDI5MC42NTYgOTIuOTk2QzI5MC44NzcgOTMuNTEzIDI5MSA5NC4wODE1IDI5MSA5NC42NzgyIDI5MSA5Ny4wNjUxIDI4OS4wMzggOTkgMjg2LjYxNyA5OUwyNDAuMzgzIDk5QzIzNy45NjMgOTkgMjM2IDk3LjA2NTEgMjM2IDk0LjY3ODIgMjM2IDk0LjM3OTkgMjM2LjAzMSA5NC4wODg2IDIzNi4wODkgOTMuODA3MkwyMzYuMzM4IDkzLjAxNjIgMjM2Ljg1OCA5Mi4xMzE0IDI1OS40NzMgNTMuNjI5NCAyNTkuOTYxIDUyLjc5ODUgMjYwLjQwNyA1Mi4yNjU4QzI2MS4yIDUxLjQ4MzcgMjYyLjI5NiA1MSAyNjMuNTA2IDUxWk0yNjMuNTg2IDY2LjAxODNDMjYwLjczNyA2Ni4wMTgzIDI1OS4zMTMgNjcuMTI0NSAyNTkuMzEzIDY5LjMzNyAyNTkuMzEzIDY5LjYxMDIgMjU5LjMzMiA2OS44NjA4IDI1OS4zNzEgNzAuMDg4N0wyNjEuNzk1IDg0LjAxNjEgMjY1LjM4IDg0LjAxNjEgMjY3LjgyMSA2OS43NDc1QzI2Ny44NiA2OS43MzA5IDI2Ny44NzkgNjkuNTg3NyAyNjcuODc5IDY5LjMxNzkgMjY3Ljg3OSA2Ny4xMTgyIDI2Ni40NDggNjYuMDE4MyAyNjMuNTg2IDY2LjAxODNaTTI2My41NzYgODYuMDU0N0MyNjEuMDQ5IDg2LjA1NDcgMjU5Ljc4NiA4Ny4zMDA1IDI1OS43ODYgODkuNzkyMSAyNTkuNzg2IDkyLjI4MzcgMjYxLjA0OSA5My41Mjk1IDI2My41NzYgOTMuNTI5NSAyNjYuMTE2IDkzLjUyOTUgMjY3LjM4NyA5Mi4yODM3IDI2Ny4zODcgODkuNzkyMSAyNjcuMzg3IDg3LjMwMDUgMjY2LjExNiA4Ni4wNTQ3IDI2My41NzYgODYuMDU0N1oiIGZpbGw9IiNGRkU1MDAiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L3N2Zz4=) no-repeat 1rem/1.8rem, #b32121;
+    padding: 1rem 1rem 1rem 3.7rem;
+    color: white;
+}
+
+    .blazor-error-boundary::after {
+        content: "Si è verificato un errore."
+    }
+
+.loading-progress {
+    position: absolute;
+    display: block;
+    width: 8rem;
+    height: 8rem;
+    inset: 20vh 0 auto 0;
+    margin: 0 auto 0 auto;
+}
+
+    .loading-progress circle {
+        fill: none;
+        stroke: #e0e0e0;
+        stroke-width: 0.6rem;
+        transform-origin: 50% 50%;
+        transform: rotate(-90deg);
+    }
+
+        .loading-progress circle:last-child {
+            stroke: #a8457a;
+            stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
+            transition: stroke-dasharray 0.05s ease-in-out;
+        }
+
+.loading-progress-text {
+    position: absolute;
+    text-align: center;
+    font-weight: bold;
+    inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+}
+
+    .loading-progress-text:after {
+        content: var(--blazor-load-percentage-text, "Caricamento");
+    }
+
+code {
+    color: #c02d76;
+}
+
+.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
+    color: var(--bs-secondary-color);
+    text-align: end;
+}
+
+.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+    text-align: start;
+}

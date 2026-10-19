@@ -1,0 +1,42 @@
+@page "/storico"
+@inherits RefreshOnChange
+
+<PageTitle>Storico mesi</PageTitle>
+
+<h1>Storico mesi</h1>
+<div class="subtitle">Tocca un mese per vederlo nel calendario.</div>
+
+@{
+    var calc = Repo.CreateCalculator();
+    var today = DateOnly.FromDateTime(DateTime.Now);
+    var current = new DateOnly(today.Year, today.Month, 1);
+    var oldest = Repo.Days.Count > 0 ? Repo.Days.Min(d => d.Date) : today;
+    var start = new DateOnly(oldest.Year, oldest.Month, 1);
+    if (start > current) start = current;
+}
+
+@for (var m = current; m >= start; m = m.AddMonths(-1))
+{
+    var isCurrent = m == current;
+    var end = m.AddMonths(1).AddDays(-1);
+    var summary = calc.Month(m.Year, m.Month, isCurrent ? today : end);
+
+    <a class="card-wh month-row" href="calendario/@m.Year/@m.Month">
+        <div>
+            <div class="fw-semibold">
+                @Format.MonthYear(m.Year, m.Month)
+                @if (isCurrent)
+                {
+                    <span class="small text-muted fw-normal">· in corso</span>
+                }
+            </div>
+            <div class="small text-muted">
+                @Format.Hours(summary.Worked) fatte su @Format.Hours(isCurrent ? summary.ExpectedToDate : summary.Target)
+                @(isCurrent ? $"previste finora (mese: {Format.Hours(summary.Target)})" : "")
+            </div>
+        </div>
+        <span class="badge-balance @(summary.Balance < TimeSpan.Zero ? "bad" : summary.Balance > TimeSpan.Zero ? "ok" : "zero")">
+            @Format.Balance(summary.Balance)
+        </span>
+    </a>
+}

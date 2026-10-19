@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f6f5f8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121114" media="(prefers-color-scheme: dark)" />
+    <script>
+        // Tema chiaro/scuro come il telefono
+        (function () {
+            var dark = window.matchMedia("(prefers-color-scheme: dark)");
+            var apply = function () { document.documentElement.setAttribute("data-bs-theme", dark.matches ? "dark" : "light"); };
+            apply();
+            dark.addEventListener("change", apply);
+        })();
+    </script>
+    <title>WorkHours</title>
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Ore" />
+    <base href="/" />
+    <script>
+        // Su GitHub Pages l'app sta in una sottocartella (es. /WorkHours/): aggiorna la base
+        // prima che vengano caricati CSS e script.
+        if (location.hostname.endsWith("github.io")) {
+            document.querySelector("base").href = "/" + location.pathname.split("/")[1] + "/";
+        }
+    </script>
+    <link rel="preload" id="webassembly" />
+    <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link href="WorkHours.App.styles.css" rel="stylesheet" />
+    <link href="manifest.webmanifest" rel="manifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+    <script type="importmap"></script>
+</head>
+
+<body>
+    <div id="app">
+        <svg class="loading-progress">
+            <circle r="40%" cx="50%" cy="50%" />
+            <circle r="40%" cx="50%" cy="50%" />
+        </svg>
+        <div class="loading-progress-text"></div>
+    </div>
+
+    <div id="blazor-error-ui">
+        Si è verificato un errore.
+        <a href="." class="reload">Ricarica</a>
+        <span class="dismiss">🗙</span>
+    </div>
+    <script src="js/workhours.js"></script>
+    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+    <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });</script>
+</body>
+
+</html>
