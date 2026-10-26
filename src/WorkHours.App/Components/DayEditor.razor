@@ -18,18 +18,33 @@
     </select>
 </div>
 
-<label class="form-label d-block small text-muted mb-1">Fasce orarie</label>
-@for (var i = 0; i < _slots.Count; i++)
+@if (_oldSlotsText is not null)
 {
-    var slot = _slots[i];
-    <div class="slot-row">
-        <input type="time" class="form-control" aria-label="Inizio" @bind="slot.Start" @bind:after="Edited" />
-        <span class="text-muted">–</span>
-        <input type="time" class="form-control" aria-label="Fine" @bind="slot.End" @bind:after="Edited" />
-        <button type="button" class="btn btn-link text-muted px-2" aria-label="Rimuovi fascia" @onclick="() => Remove(slot)">✕</button>
+    <div class="hint">
+        Questo giorno era stato inserito a fasce (@_oldSlotsText).
+        Qui sotto trovi presenza e pausa equivalenti: se salvi, passa al nuovo formato con le stesse ore.
     </div>
 }
-<button type="button" class="btn btn-outline-secondary btn-sm mb-3" @onclick="AddSlot">+ Aggiungi fascia</button>
+
+<label class="form-label d-block small text-muted mb-1">Presenza (pausa compresa)</label>
+<div class="duration-row mb-2">
+    <input type="number" class="form-control" inputmode="numeric" min="0" max="24" placeholder="0" aria-label="Ore di presenza"
+           @bind="_presenceHours" @bind:event="oninput" @bind:after="Edited" />
+    <span class="text-muted">ore</span>
+    <input type="number" class="form-control" inputmode="numeric" min="0" max="59" placeholder="0" aria-label="Minuti di presenza"
+           @bind="_presenceMinutes" @bind:event="oninput" @bind:after="Edited" />
+    <span class="text-muted">min</span>
+</div>
+
+<label class="form-label d-block small text-muted mb-1">Pausa</label>
+<div class="duration-row mb-3">
+    <input type="number" class="form-control" inputmode="numeric" min="0" max="24" placeholder="0" aria-label="Ore di pausa"
+           @bind="_pauseHours" @bind:event="oninput" @bind:after="Edited" />
+    <span class="text-muted">ore</span>
+    <input type="number" class="form-control" inputmode="numeric" min="0" max="59" placeholder="0" aria-label="Minuti di pausa"
+           @bind="_pauseMinutes" @bind:event="oninput" @bind:after="Edited" />
+    <span class="text-muted">min</span>
+</div>
 
 <div class="mb-3">
     <input class="form-control" placeholder="Note (facoltative)" @bind="_note" @bind:after="Edited" />
@@ -37,7 +52,7 @@
 
 <div class="d-flex align-items-center justify-content-between mb-2">
     <div>
-        <div class="fw-semibold">Totale @Format.Hours(Total)</div>
+        <div class="fw-semibold">Lavorate @Format.Hours(Total)</div>
         <div class="small text-muted">@ExpectedText</div>
     </div>
     <button type="button" class="btn btn-primary px-4" @onclick="SaveAsync">Salva</button>
@@ -57,14 +72,12 @@
 
     [Parameter] public EventCallback OnSaved { get; set; }
 
-    private sealed class SlotRow
-    {
-        public TimeOnly Start { get; set; }
-        public TimeOnly End { get; set; }
-    }
-
     private DateOnly _loadedDate;
-    private List<SlotRow> _slots = [];
+    private int? _presenceHours;
+    private int? _presenceMinutes;
+    private int? _pauseHours;
+    private int? _pauseMinutes;
+    private string? _oldSlotsText;
     private DayType _type;
     private DayType _autoType;
     private string? _note;
@@ -84,18 +97,37 @@
         _autoType = _holidayName is not null ? DayType.Festivo : DayType.Lavoro;
         _type = calc.EffectiveType(Date);
         _note = day?.Note;
-        _slots = day?.Slots.Select(s => new SlotRow { Start = s.Start, End = s.End }).ToList() ?? [];
         _errors = [];
         _saved = false;
 
-        // Giorno lavorativo vuoto: propone già una prima fascia da compilare.
-        if (_slots.Count == 0 && _type == DayType.Lavoro && Repo.Settings.ScheduleFor(Date).IsWorkingDay(Date))
-            AddSlot();
+        // Giorni inseriti a fasce: si mostrano già convertiti in presenza e pausa (stesse ore lavorate).
+        _oldSlotsText = day is { UsesSlots: true }
+            ? string.Join(", ", day.Slots.OrderBy(s => s.Start).Select(s => $"{s.Start:HH\\:mm}–{s.End:HH\\:mm}"))
+            : null;
+        var (presence, pause) = day?.ToPresenceAndPause() ?? (TimeSpan.Zero, TimeSpan.Zero);
+        (_presenceHours, _presenceMinutes) = Split(presence);
+        (_pauseHours, _pauseMinutes) = Split(pause);
     }
 
-    private TimeSpan Total => _slots
-        .Where(s => s.End > s.Start)
-        .Aggregate(TimeSpan.Zero, (sum, s) => sum + (s.End - s.Start));
+    /// <summary>Zero diventa campo vuoto, così si vede il segnaposto e si scrive subito.</summary>
+    private static (int?, int?) Split(TimeSpan value)
+    {
+        if (value <= TimeSpan.Zero)
+            return (null, null);
+        var minutes = (int)Math.Round(value.TotalMinutes);
+        return (minutes / 60, minutes % 60 == 0 ? null : minutes % 60);
+    }
+
+    /// <summary>Null se entrambi i campi sono vuoti. I minuti oltre 59 si sommano (90 min = 1h 30min).</summary>
+    private static TimeSpan? Join(int? hours, int? minutes) =>
+        hours is null && minutes is null ? null : TimeSpan.FromMinutes((hours ?? 0) * 60 + (minutes ?? 0));
+
+    private TimeSpan? Presence => Join(_presenceHours, _presenceMinutes);
+
+    /// <summary>Una pausa a zero equivale a nessuna pausa.</summary>
+    private TimeSpan? Pause => Join(_pauseHours, _pauseMinutes) is { } p && p != TimeSpan.Zero ? p : null;
+
+    private TimeSpan Total => new WorkDay { Presence = Presence, Pause = Pause }.Worked;
 
     private string ExpectedText
     {
@@ -116,20 +148,6 @@
         _ => t.ToString(),
     };
 
-    private void AddSlot()
-    {
-        var start = _slots.Count > 0 ? _slots[^1].End : new TimeOnly(9, 0);
-        var end = start < new TimeOnly(23, 0) ? start.AddHours(1) : new TimeOnly(23, 59);
-        _slots.Add(new SlotRow { Start = start, End = end });
-        Edited();
-    }
-
-    private void Remove(SlotRow slot)
-    {
-        _slots.Remove(slot);
-        Edited();
-    }
-
     private void Edited()
     {
         _saved = false;
@@ -141,7 +159,8 @@
         var day = new WorkDay
         {
             Date = Date,
-            Slots = _slots.Select(s => new TimeSlot(s.Start, s.End)).ToList(),
+            Presence = Presence,
+            Pause = Pause,
             // Se coincide con quello automatico non lo forziamo: così, se cambiano i festivi, resta coerente.
             Type = _type == _autoType ? null : _type,
             Note = _note,
@@ -150,6 +169,9 @@
         _errors = await Repo.SaveDayAsync(day);
         _saved = _errors.Count == 0;
         if (_saved)
+        {
+            _oldSlotsText = null;
             await OnSaved.InvokeAsync();
+        }
     }
 }

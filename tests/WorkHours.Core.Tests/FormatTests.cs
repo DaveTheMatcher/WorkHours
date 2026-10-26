@@ -6,16 +6,18 @@ public class FormatTests
 {
     [Theory]
     [InlineData(4, 0, "4h")]
-    [InlineData(4, 30, "4h 30")]
-    [InlineData(0, 5, "0h 05")]
+    [InlineData(4, 30, "4h 30min")]
+    [InlineData(0, 5, "0h 5min")]
     [InlineData(0, 0, "0h")]
-    [InlineData(-1, -30, "−1h 30")]
+    [InlineData(-1, -30, "−1h 30min")]
+    [InlineData(5, 30, "5h 30min")]
     public void Ore(int h, int m, string expected) =>
         Assert.Equal(expected, Format.Hours(new TimeSpan(h, m, 0)));
 
     [Theory]
     [InlineData(2, 0, "+2h")]
     [InlineData(-2, 0, "−2h")]
+    [InlineData(0, 40, "+0h 40min")]
     [InlineData(0, 0, "0h")]
     public void Saldo(int h, int m, string expected) =>
         Assert.Equal(expected, Format.Balance(new TimeSpan(h, m, 0)));

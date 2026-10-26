@@ -72,7 +72,8 @@ public sealed class WorkHoursRepository(IKeyValueStore store)
 
     /// <summary>
     /// Salva un giorno. Restituisce gli errori di validazione (e in quel caso non salva).
-    /// Un giorno senza fasce, senza tipo e senza note viene eliminato.
+    /// Un giorno senza ore, senza tipo e senza note viene eliminato.
+    /// Presenza e pausa entrambe a zero valgono come "nessuna ora"; una pausa a zero non viene salvata.
     /// </summary>
     public async Task<IReadOnlyList<string>> SaveDayAsync(WorkDay day)
     {
@@ -80,16 +81,23 @@ public sealed class WorkHoursRepository(IKeyValueStore store)
         if (errors.Count > 0)
             return errors;
 
+        var presence = day.Presence;
+        var pause = day.Pause is { } p && p > TimeSpan.Zero ? p : (TimeSpan?)null;
+        if (presence == TimeSpan.Zero && pause is null)
+            presence = null;
+
         var copy = new WorkDay
         {
             Date = day.Date,
             Slots = day.Slots.OrderBy(s => s.Start).ToList(),
+            Presence = presence,
+            Pause = presence is null ? null : pause,
             Type = day.Type,
             Note = string.IsNullOrWhiteSpace(day.Note) ? null : day.Note.Trim(),
         };
 
         _data.Days.RemoveAll(d => d.Date == day.Date);
-        if (copy.Slots.Count > 0 || copy.Type is not null || copy.Note is not null)
+        if (copy.Slots.Count > 0 || copy.Presence is not null || copy.Type is not null || copy.Note is not null)
         {
             _data.Days.Add(copy);
             _data.Days.Sort((a, b) => a.Date.CompareTo(b.Date));

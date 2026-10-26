@@ -21,15 +21,15 @@ public static class Format
     /// <summary>Es. "martedì 20 ottobre".</summary>
     public static string LongDate(DateOnly date) => $"{DayName(date.DayOfWeek)} {date.Day} {MonthName(date.Month)}";
 
-    /// <summary>Es. "4h", "4h 30", "0h".</summary>
+    /// <summary>Es. "4h", "4h 30min", "0h 5min", "0h".</summary>
     public static string Hours(TimeSpan value)
     {
         var minutes = (long)Math.Round(Math.Abs(value.TotalMinutes));
-        var text = minutes % 60 == 0 ? $"{minutes / 60}h" : $"{minutes / 60}h {minutes % 60:00}";
+        var text = minutes % 60 == 0 ? $"{minutes / 60}h" : $"{minutes / 60}h {minutes % 60}min";
         return value < TimeSpan.Zero && minutes > 0 ? "−" + text : text;
     }
 
-    /// <summary>Come <see cref="Hours"/> ma con il segno: "+2h", "−1h 30", "0h".</summary>
+    /// <summary>Come <see cref="Hours"/> ma con il segno: "+2h", "−1h 30min", "0h".</summary>
     public static string Balance(TimeSpan value)
     {
         var text = Hours(value);

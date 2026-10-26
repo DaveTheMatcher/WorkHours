@@ -170,16 +170,16 @@ a, .btn-link {
 }
 
 /* ---------- Editor del giorno ---------- */
-.slot-row {
+.duration-row {
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-bottom: 8px;
 }
 
-.slot-row input {
+.duration-row input {
     flex: 1;
     min-width: 0;
+    text-align: center;
 }
 
 /* ---------- Calendario ---------- */
@@ -226,7 +226,10 @@ a, .btn-link {
 .cal-day .hrs {
     margin-top: auto;
     font-size: 0.66rem;
-    white-space: nowrap;
+    line-height: 1.1;
+    text-align: center;
+    /* Su telefoni stretti "4h 30min" va a capo tra ore e minuti invece di uscire dalla casella. */
+    white-space: normal;
 }
 
 .cal-day.off { background: transparent; color: var(--wh-muted); }

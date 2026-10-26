@@ -7,7 +7,11 @@ namespace WorkHours.Core.Storage;
 /// <summary>Tutti i dati dell'app. È anche il formato del file di backup.</summary>
 public sealed class AppData
 {
-    public const int CurrentVersion = 1;
+    /// <summary>
+    /// 1 = giorni solo a fasce orarie.
+    /// 2 = aggiunti presenza e pausa per giorno; i giorni a fasce restano validi.
+    /// </summary>
+    public const int CurrentVersion = 2;
 
     public int Version { get; set; } = CurrentVersion;
 
@@ -52,8 +56,10 @@ public sealed class AppData
 
         var invalid = data.Days.FirstOrDefault(d => d.Validate().Count > 0);
         if (invalid is not null)
-            throw new InvalidBackupException($"Il giorno {invalid.Date:dd/MM/yyyy} ha fasce orarie non valide.");
+            throw new InvalidBackupException($"Il giorno {invalid.Date:dd/MM/yyyy} ha ore non valide.");
 
+        // Un backup vecchio letto da questa app diventa del formato attuale (i giorni a fasce restano tali).
+        data.Version = CurrentVersion;
         return data;
     }
 }
